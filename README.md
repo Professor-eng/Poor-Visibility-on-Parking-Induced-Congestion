@@ -2,7 +2,7 @@
 
 An AI-driven system for detecting illegal-parking hotspots in Bengaluru and quantifying their impact on traffic flow, built to enable **targeted, prioritized enforcement** instead of reactive, experience-driven patrolling.
 
-**Live demo:** _[add your Streamlit Cloud URL here after deploying]_
+**Live demo:** https://poor-visibility-on-parking-induced-congestion-rydynvc8bnzzvcmb.streamlit.app/
 
 ---
 
@@ -44,12 +44,6 @@ See `models/training_metrics.json` for the exact numbers from the most recent tr
 - The patrol simulator's "6% reduction per interceptor" is an **illustrative assumption** for demonstrating the what-if mechanic, not a measured causal effect.
 - Motor Vehicles Act section citations in the Statutory Reference Card are **indicative** and should be verified against current state notifications before any real operational use.
 
-## Future Work
-
-- Integrate a live violation feed instead of batch historical data.
-- Correlate severity scores against real measured congestion/travel-time data (e.g. via a traffic API) to validate the scoring methodology empirically.
-- Explore sovereign/local map data sources (e.g. Mappls, Bhuvan) for India-specific deployments.
-- Predict `validation_status` (approved vs. rejected) to reduce false-positive patrol dispatches.
 
 ## Setup
 
