@@ -1,6 +1,6 @@
 # AI-Driven Parking & Congestion Intelligence
 
-An AI-driven system for detecting illegal parking hotspots in Bengaluru and measuring their impact on traffic congestion.
+An AI based solution for identifying illegal parking hotspots in Bengaluru and gauging their effects on traffic congestion.
 
 **Live demo:** https://poor-visibility-on-parking-induced-congestion-rydynvc8bnzzvcmb.streamlit.app/
 
@@ -16,11 +16,12 @@ On-street illegal parking and spillover parking near commercial areas, metro sta
 
 ## Approach
 
-1. **Data pipeline** (`src/pipeline.py`) — cleans raw violation records, keeps only approved records, and assigns a **severity score** per violation type (e.g. double-parking and road crossing obstructions score higher than footpath parking, since they create a more direct physical chokepoint). Locations are indexed using **Uber H3** spatial hexagons.
+1. **Data pipeline** (`src/pipeline.py`) — cleans raw violation records, only keeps approved records, and assigns a severity score for each violation type (e.g. double-parking and road crossing obstruction are more severe than footpath parking which is a more direct physical chokepoint). Uber H3 spatial hexagons are used for locations.
 
-2. **Feature engineering** (`src/features.py`) — aggregates violation data into one row per `(H3 cell, hour, day-of-week)`, with total violations, aggregated severity, and mean coordinates.
+2. **Feature engineering** (`src/features.py`) — combines violation data into a single row per `(H3 cell, hour, day-of-week)`, includes total violations, aggregated severity and mean coordinates.
 
-3. **Forecasting model** (`src/train.py`) — trains both a solo LightGBM regressor and a stacked LightGBM+XGBoost ensemble to predict congestion severity from, **automatically selecting whichever model earns its complexity** (the ensemble is only shipped if it beats solo LightGBM by a meaningful margin; current run shipped solo LightGBM after the ensemble didn't clear the bar).
+
+3. **Forecasting model** (`src/train.py`) — trains a single LightGBM regressor and an ensemble of two or more models — LightGBM and XGBoost — automatically choosing to ship the ensemble if it gets a better score compared to the solo regressor, and the score is better than a meaningful margin (current run ships LightGBM alone, since the ensemble failed to clear the bar).
 
 4. **Dashboard** (`app.py`) — a Streamlit app with:
    - A 3D hexagon map (PyDeck/H3) of historical or forecasted severity, log scaled for visibility across a long tailed severity distribution.
@@ -45,7 +46,7 @@ Create a `.env` file in the project root (never commit this file):
 GEMINI_API_KEY=your_key_here
 ```
 
-Run the data pipeline once to regenerate processed data and the trained model (optional — only needed if you don't already have `data/master_table.csv` and `models/ensemble_forecaster.pkl`):
+Run the data pipeline once:
 ```bash
 python src/pipeline.py
 python src/features.py
