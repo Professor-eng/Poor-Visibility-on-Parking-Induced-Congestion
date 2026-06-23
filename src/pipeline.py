@@ -3,10 +3,7 @@ import h3
 import ast
 
 def clean_and_index_data(file_path: str, h3_resolution: int = 8) -> pd.DataFrame:
-    """
-    Takes raw traffic data as input and then removes noise, filters multicollinearity,
-    and applies Uber H3 spatial indexing with severity scoring.
-    """
+    
     df = pd.read_csv(file_path)
     df.drop(columns = ['description','closed_datetime','action_taken_timestamp', 'created_by_id', 'device_id', 'data_sent_to_scita_timestamp'], inplace = True)
     
@@ -21,7 +18,6 @@ def clean_and_index_data(file_path: str, h3_resolution: int = 8) -> pd.DataFrame
         
     df = df.dropna(subset=['latitude', 'longitude'])
     
-    # 2. Domain-Specific Severity Scoring (Section 4)
     severity_weights = {
         # CRITICAL IMPACT: Creates an immediate physical chokepoint
         'DOUBLE PARKING': 5.0,
@@ -77,7 +73,6 @@ def clean_and_index_data(file_path: str, h3_resolution: int = 8) -> pd.DataFrame
     return df
 
 if __name__ == "__main__":
-    # Example execution line
     processed_df = clean_and_index_data(r"C:\Users\Admin\Desktop\Round2\data\jan to may police violation_anonymized791b166.csv")
     processed_df.to_csv("data/processed_indexed.csv", index=False)
     print("Date cleaned and processed.")
