@@ -16,7 +16,7 @@ _gemini_client = genai.Client() if os.getenv("GEMINI_API_KEY") else None
 
 FEATURE_COLS = ['hour', 'day_of_week', 'is_weekend', 'is_peak_hour', 'total_violations']
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# Helper functions
 
 def generate_briefing(zone_label, hour, severity_score, tier_label):
     if _gemini_client is None:
@@ -56,11 +56,8 @@ def get_statute_reference(severity_score, df_all):
 def predict_zones(df, selected_hour, selected_dow, is_weekend_sel, is_peak_sel,
                   violation_multiplier=1.0):
     """
-    Scores only the h3_cells that are historically active at this exact hour+day.
-    This keeps the zone count identical to the historical view — only severity changes.
-    Clips predictions to >= 0 so log-scaling and the map stay well-behaved.
+    Predict severity for active zones at the selected hour/day.
     """
-    # ── KEY FIX: restrict to zones active at this specific hour/day ──
     hour_day_df = df[
         (df['hour'] == selected_hour) & (df['day_of_week'] == selected_dow)
     ]
@@ -107,7 +104,7 @@ def build_hex_layer(data: pd.DataFrame, weight_col: str) -> pdk.Layer:
     )
 
 
-# ── Page setup ────────────────────────────────────────────────────────────────
+# Page setup
 
 st.set_page_config(layout="wide", page_title="AI Traffic Intelligence Platform")
 
@@ -128,7 +125,7 @@ model = load_model()
 st.title("AI-Driven Traffic Intelligence System")
 st.markdown("---")
 
-# ── Controls ──────────────────────────────────────────────────────────────────
+# Dashboard controls
 
 ctrl_col, sim_col = st.columns([1, 1])
 
@@ -152,7 +149,6 @@ with ctrl_col:
                                   is_weekend_sel, is_peak_sel)
             st.session_state['predicted_zones'] = zones
             st.session_state['predicted_for'] = (selected_hour, selected_dow)
-            # Clear any stale simulation state
             st.session_state.pop('sim_baseline', None)
             st.session_state.pop('sim_result', None)
             st.session_state.pop('sim_interceptors', None)
@@ -161,10 +157,10 @@ with ctrl_col:
             f"across {len(zones)} zones."
         )
 
-# ── What-If Patrol Simulator ──────────────────────────────────────────────────
+# What-If Patrol Simulator 
 
 with sim_col:
-    st.header("🚔 What-If Patrol Simulator")
+    st.header("🚔 Patrol Simulation")
     st.caption(
         "Deploy interceptors and re-score the city. "
         "Watch critical zones shrink and cool on the map in real time."
@@ -183,13 +179,11 @@ with sim_col:
     sim_disabled = interceptors == 0
     if st.button("🔁 Simulate Patrol Deployment", disabled=sim_disabled):
         with st.spinner("Re-scoring under patrol conditions…"):
-            # Baseline (no patrol) for delta comparison
             baseline_zones = predict_zones(df, selected_hour, selected_dow,
                                            is_weekend_sel, is_peak_sel,
                                            violation_multiplier=1.0)
             baseline_severity = baseline_zones['predicted_severity'].sum()
 
-            # Simulated (patrol suppression)
             sim_zones = predict_zones(df, selected_hour, selected_dow,
                                       is_weekend_sel, is_peak_sel,
                                       violation_multiplier=reduction_factor)
@@ -222,7 +216,7 @@ with sim_col:
         )
         m3.metric("Interceptors", st.session_state['sim_interceptors'])
 
-# ── Map ───────────────────────────────────────────────────────────────────────
+# Map
 
 hour_df = df[
     (df['hour'] == selected_hour) & (df['day_of_week'] == selected_dow)
@@ -238,7 +232,7 @@ else:
     map_data = hour_df
     weight_col = "aggregated_severity"
 
-st.subheader("Micro-Hotspot Spatial Severity Topography")
+st.subheader("Zone Severity Map")
 
 view_state = pdk.ViewState(
     longitude=hour_df['mean_longitude'].mean() if not hour_df.empty else 77.5946,
@@ -272,7 +266,7 @@ st.caption(
 
 st.markdown("---")
 
-# ── SHAP Explainability ───────────────────────────────────────────────────────
+# SHAP explainability
 
 st.header("AI Explainability (SHAP)")
 st.info("Understanding why the model flagged this specific spatial zone.")
@@ -314,9 +308,9 @@ else:
  
 st.markdown("---")
  
-# ── Prescriptive Operational Support ─────────────────────────────────────────
+# Operational recommendations
 
-st.header("🤖 Prescriptive Operational Support")
+st.header("🤖 Recommendations")
 
 worst_cell = None
 if use_prediction:
