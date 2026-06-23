@@ -1,6 +1,6 @@
-# 🚦 AI-Driven Parking & Congestion Intelligence
+# AI-Driven Parking & Congestion Intelligence
 
-An AI-driven system for detecting illegal-parking hotspots in Bengaluru and quantifying their impact on traffic flow, built to enable **targeted, prioritized enforcement** instead of reactive, experience-driven patrolling.
+An AI-driven system for detecting illegal parking hotspots in Bengaluru and measuring their impact on traffic congestion.
 
 **Live demo:** https://poor-visibility-on-parking-induced-congestion-rydynvc8bnzzvcmb.streamlit.app/
 
@@ -8,41 +8,26 @@ An AI-driven system for detecting illegal-parking hotspots in Bengaluru and quan
 
 ## The Problem
 
-On-street illegal parking near commercial areas, metro stations, and junctions chokes carriageways — but today:
-- Enforcement is patrol-based and reactive, not data-driven.
-- There is no heatmap linking parking violations to actual congestion impact.
-- There is no way to prioritize *where* limited enforcement resources should go.
-
-Working with ~6 months of real, anonymized Bengaluru traffic-violation records, two findings shaped this entire project:
-- **0%** of violations in the dataset have any recorded closure or action-taken timestamp — there is currently no visibility into whether flagged violations are ever resolved.
-- **~28.7%** of auto-flagged violations are rejected on human validation — meaning roughly 1 in 3 flags are false positives, a real cost to any naive "respond to every flag" enforcement strategy.
+On-street illegal parking and spillover parking near commercial areas, metro stations, and events choke carriageways and intersections.
+**Why It’s Hard Today**
+- Enforcement is patrol-based and reactive.
+- No heatmap of parking violations vs. congestion impact.
+- Difficult to prioritize enforcement zones.
 
 ## Approach
 
-1. **Data pipeline** (`src/pipeline.py`) — cleans raw violation records, keeps only human-validated (`approved`) records, and assigns a **domain-informed severity score** per violation type (e.g. double-parking and road-crossing obstructions score higher than footpath parking, since they create a more direct physical chokepoint). Locations are indexed using **Uber H3** spatial hexagons for consistent, scale-appropriate spatial aggregation.
+1. **Data pipeline** (`src/pipeline.py`) — cleans raw violation records, keeps only approved records, and assigns a **severity score** per violation type (e.g. double-parking and road crossing obstructions score higher than footpath parking, since they create a more direct physical chokepoint). Locations are indexed using **Uber H3** spatial hexagons.
 
-2. **Feature engineering** (`src/features.py`) — aggregates violation-level data into a spatio-temporal master table: one row per `(H3 cell, hour, day-of-week)`, with total violations, aggregated severity, and mean coordinates.
+2. **Feature engineering** (`src/features.py`) — aggregates violation data into one row per `(H3 cell, hour, day-of-week)`, with total violations, aggregated severity, and mean coordinates.
 
-3. **Forecasting model** (`src/train.py`) — trains both a solo LightGBM regressor and a stacked LightGBM+XGBoost ensemble to predict congestion severity from temporal/spatial features, **automatically selecting whichever model earns its complexity** (the ensemble is only shipped if it beats solo LightGBM by a meaningful margin; current run shipped solo LightGBM after the ensemble didn't clear the bar).
+3. **Forecasting model** (`src/train.py`) — trains both a solo LightGBM regressor and a stacked LightGBM+XGBoost ensemble to predict congestion severity from, **automatically selecting whichever model earns its complexity** (the ensemble is only shipped if it beats solo LightGBM by a meaningful margin; current run shipped solo LightGBM after the ensemble didn't clear the bar).
 
 4. **Dashboard** (`app.py`) — a Streamlit app with:
-   - A 3D hexagon map (PyDeck/H3) of historical or forecasted severity, log-scaled for visibility across a long-tailed severity distribution.
-   - A **predictive engine** that forecasts severity for any selected hour/day combination, not just historically observed ones.
-   - A **What-If Patrol Simulator** — model the effect of deploying N patrol interceptors on citywide severity (illustrative suppression assumption, stated explicitly, not a measured causal effect).
-   - **SHAP-based explainability** — shows which features (hour, day, historical violation volume) drove a zone's severity score.
-   - An **LLM-generated deployment briefing** (Gemini) for the top-priority zone.
-   - A **rule-based statutory reference card** mapping severity tier to the relevant Motor Vehicles Act section — a static lookup, explicitly *not* retrieval-augmented generation.
-
-## Model Performance
-
-See `models/training_metrics.json` for the exact numbers from the most recent training run (RMSE / MAE / R² for both the solo and ensemble models, and which one was shipped).
-
-## Known Limitations & Honest Assumptions
-
-- This is a **historical-pattern system**, not a live feed — there is no real-time camera/sensor integration. Forecasts extrapolate from historical hour/day patterns, not live traffic conditions.
-- Severity weights per violation type are **domain judgment**, not derived from measured ground-truth congestion data (no live traffic-speed dataset was available).
-- The patrol simulator's "6% reduction per interceptor" is an **illustrative assumption** for demonstrating the what-if mechanic, not a measured causal effect.
-- Motor Vehicles Act section citations in the Statutory Reference Card are **indicative** and should be verified against current state notifications before any real operational use.
+   - A 3D hexagon map (PyDeck/H3) of historical or forecasted severity, log scaled for visibility across a long tailed severity distribution.
+   - A predictive engine that forecasts severity for any selected hour/day combination.
+   - A What-If Patrol Simulator — model the effect of deploying N patrol interceptors on citywide severity 
+   - SHAP-based explainability — shows which features (hour, day, historical violation volume) drove a zone's severity score.
+   - An LLM-generated deployment briefing (Gemini).
 
 
 ## Setup
